@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplication Practice with Keypad</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+        .countdown {
+            font-size: 3em;
+            font-weight: bold;
+        }
+        .exercise, .results {
+            margin-top: 20px;
+        }
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 80px);
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .keypad button {
+            width: 80px;
+            height: 80px;
+            font-size: 1.5em;
+            border: 1px solid #ddd;
+            background-color: #f7f7f7;
+            cursor: pointer;
+        }
+        .keypad button:hover {
+            background-color: #e0e0e0;
+        }
+        .answer-box {
+            font-size: 1.5em;
+            width: 200px;
+            padding: 10px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            margin-top: 10px;
+        }
+        #position {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .history {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .history ul {
+            list-style: none;
+            padding: 0;
+        }
+        .history ul li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Multiplication Practice</h1>
+    <div class="countdown" id="countdown">3</div>
+
+    <div class="exercise hidden" id="exercise">
+        <p id="position"></p>
+        <p id="question"></p>
+        <input type="text" id="answer" class="answer-box" readonly>
+        <div class="keypad">
+            <button onclick="appendNumber(1)">1</button>
+            <button onclick="appendNumber(2)">2</button>
+            <button onclick="appendNumber(3)">3</button>
+            <button onclick="appendNumber(4)">4</button>
+            <button onclick="appendNumber(5)">5</button>
+            <button onclick="appendNumber(6)">6</button>
+            <button onclick="appendNumber(7)">7</button>
+            <button onclick="appendNumber(8)">8</button>
+            <button onclick="appendNumber(9)">9</button>
+            <button onclick="clearAnswer()">C</button>
+            <button onclick="appendNumber(0)">0</button>
+            <button onclick="submitAnswer()">E</button>
+        </div>
+    </div>
+
+    <div class="results hidden" id="results">
+        <button onclick="startCountdown()">Start New Round</button>
+        <h2>Results</h2>
+        <p id="summary"></p>
+        <p id="improvement"></p>
+        <div class="history">
+            <h3>History</h3>
+            <ul id="history"></ul>
+        </div>
+    </div>
+
+    <script>
+        const totalExercises = 10;
+        let exercises = [];
+        let currentExercise = 0;
+        let startTime, roundStartTime;
+        let results = [];
+
+        function startCountdown() {
+            const countdownElement = document.getElementById("countdown");
+            countdownElement.classList.remove("hidden");
+            document.getElementById("results").classList.add("hidden");
+            let count = 3;
+
+            const timer = setInterval(() => {
+                if (count <= 0) {
+                    clearInterval(timer);
+                    countdownElement.classList.add("hidden");
+                    startRound();
+                } else {
+                    countdownElement.textContent = count;
+                    count--;
+                }
+            }, 500);
+        }
+
+        function startRound() {
+            exercises = generateExercises(totalExercises);
+            results = [];
+            currentExercise = 0;
+            roundStartTime = Date.now();
+            showNextExercise();
+        }
+
+        function generateExercises(count) {
+            const generated = new Set();
+            const exercises = [];
+            while (exercises.length < count) {
+                const a = Math.floor(Math.random() * 8) + 2; // Single-digit number (2-9)
+                const b = Math.floor(Math.random() * 8) + 2; // Single-digit number (2-9)
+                const key = `${a}x${b}`;
+                if (!generated.has(key)) {
+                    generated.add(key);
+                    exercises.push({ a, b, correctAnswer: a * b });
+                }
+            }
+            return exercises;
+        }
+
+        function showNextExercise() {
+            if (currentExercise >= totalExercises) {
+                endRound();
+                return;
+            }
+
+            const exercise = exercises[currentExercise];
+            document.getElementById("position").textContent = `Exercise ${currentExercise + 1} of ${totalExercises}`;
+            document.getElementById("question").textContent = `What is ${exercise.a} × ${exercise.b}?`;
+            document.getElementById("answer").value = "";
+            document.getElementById("exercise").classList.remove("hidden");
+
+            startTime = Date.now();
+        }
+
+        function submitAnswer() {
+            const answer = document.getElementById("answer").value.trim();
+            const userAnswer = answer === "" ? "N/A" : parseInt(answer, 10);
+            const exercise = exercises[currentExercise];
+            const timeTaken = (Date.now() - startTime) / 1000;
+
+            results.push({
+                ...exercise,
+                userAnswer,
+                correct: userAnswer !== "N/A" && userAnswer === exercise.correctAnswer,
+                timeTaken,
+            });
+
+            currentExercise++;
+            showNextExercise();
+        }
+
+        function endRound() {
+            const totalTime = (Date.now() - roundStartTime) / 1000;
+            saveRoundTime(totalTime);
+            const improvementText = calculateImprovement();
+
+            const incorrectAnswers = results.filter((r) => r.userAnswer !== "N/A" && !r.correct);
+            const incorrectList = incorrectAnswers.map((item) =>
+                `<li>${item.a} × ${item.b} = ${item.correctAnswer}, Your Answer: ${item.userAnswer}</li>`
+            ).join('');
+
+            document.getElementById("summary").innerHTML = `
+                <p>Total Time: ${totalTime.toFixed(2)} seconds</p>
+                <p>Incorrect Answers: ${incorrectAnswers.length}</p>
+                ${incorrectAnswers.length > 0 ? `<ul>${incorrectList}</ul>` : '<p>All answers were correct!</p>'}
+            `;
+            document.getElementById("improvement").innerHTML = improvementText;
+
+            saveLog(results);
+            displayHistory();
+            document.getElementById("exercise").classList.add("hidden");
+            document.getElementById("results").classList.remove("hidden");
+        }
+
+        function saveRoundTime(totalTime) {
+            const roundTimes = JSON.parse(localStorage.getItem(getUserId() + '_roundTimes') || '[]');
+            roundTimes.push(totalTime);
+            localStorage.setItem(getUserId() + '_roundTimes', JSON.stringify(roundTimes));
+        }
+
+        function calculateImprovement() {
+            const roundTimes = JSON.parse(localStorage.getItem(getUserId() + '_roundTimes') || '[]');
+            if (roundTimes.length < 2) return "No data to compare yet.";
+
+            const validTimes = roundTimes.filter(time => time !== "N/A");
+            if (validTimes.length < 2) return "Not enough valid data to compare.";
+
+            const previousRounds = validTimes.slice(0, -1);
+            const averageTime = previousRounds.reduce((sum, time) => sum + time, 0) / previousRounds.length;
+            const latestTime = validTimes[validTimes.length - 1];
+
+            if (latestTime < averageTime) {
+                return `Great job! You improved by ${(averageTime - latestTime).toFixed(2)} seconds compared to the average.`;
+            } else {
+                return `Keep trying! You took ${(latestTime - averageTime).toFixed(2)} seconds more than the average.`;
+            }
+        }
+
+        function saveLog(log) {
+            const validLog = log.filter(item => item.userAnswer !== "N/A");
+            const storedLog = loadLog();
+            localStorage.setItem(getUserId() + "_exerciseLog", JSON.stringify([...storedLog, ...validLog]));
+        }
+
+        function loadLog() {
+            const log = localStorage.getItem(getUserId() + "_exerciseLog");
+            return log ? JSON.parse(log) : [];
+        }
+
+        function displayHistory() {
+            const log = loadLog();
+            const historyList = document.getElementById("history");
+            if (!log || log.length === 0) {
+                historyList.innerHTML = "<p>No history available.</p>";
+                return;
+            }
+            historyList.innerHTML = log.map(item => `
+                <li>
+                    ${item.a} × ${item.b} = ${item.correctAnswer}, 
+                    Your Answer: ${item.userAnswer !== "N/A" ? item.userAnswer : "Skipped"} 
+                    (${item.correct ? 'C' : 'W'}, Time: ${item.timeTaken ? item.timeTaken.toFixed(2) + 's' : 'N/A'})
+                </li>
+            `).join('');
+        }
+
+        function appendNumber(num) {
+            document.getElementById("answer").value += num;
+        }
+
+        function clearAnswer() {
+            document.getElementById("answer").value = "";
+        }
+
+        function getUserId() {
+            let userId = document.cookie.split('; ').find(row => row.startsWith('userId='))?.split('=')[1];
+            if (!userId) {
+                userId = `user-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+                document.cookie = `userId=${userId}; path=/; max-age=31536000`; // Expires in 1 year
+            }
+            return userId;
+        }
+
+        // Initialize the countdown
+        startCountdown();
+    </script>
+</body>
+</html>
