@@ -78,15 +78,15 @@
         <p id="question"></p>
         <input type="text" id="answer" class="answer-box" readonly>
         <div class="keypad">
-            <button onclick="appendNumber(7)">7</button>
-            <button onclick="appendNumber(8)">8</button>
-            <button onclick="appendNumber(9)">9</button>
-            <button onclick="appendNumber(4)">4</button>
-            <button onclick="appendNumber(5)">5</button>
-            <button onclick="appendNumber(6)">6</button>
             <button onclick="appendNumber(1)">1</button>
             <button onclick="appendNumber(2)">2</button>
             <button onclick="appendNumber(3)">3</button>
+            <button onclick="appendNumber(4)">4</button>
+            <button onclick="appendNumber(5)">5</button>
+            <button onclick="appendNumber(6)">6</button>
+            <button onclick="appendNumber(7)">7</button>
+            <button onclick="appendNumber(8)">8</button>
+            <button onclick="appendNumber(9)">9</button>
             <button onclick="clearAnswer()">C</button>
             <button onclick="appendNumber(0)">0</button>
             <button onclick="submitAnswer()">E</button>
@@ -105,33 +105,11 @@
     </div>
 
     <script>
-        const LOGGLY_TOKEN = "f655e759-89fc-4dc3-a5dd-003c7e3700e2";
-        const LOGGLY_URL = `https://logs-01.loggly.com/inputs/${LOGGLY_TOKEN}/tag/http/`;
-
         const totalExercises = 10;
         let exercises = [];
         let currentExercise = 0;
         let startTime, roundStartTime;
         let results = [];
-
-        function logToLoggly(event, data = {}) {
-            const logData = {
-                event,
-                userId: getUserId(),
-                timestamp: new Date().toISOString(),
-                ...data,
-            };
-
-            fetch(LOGGLY_URL, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(logData),
-            }).catch((err) => {
-                console.error("Error logging to Loggly:", err);
-            });
-        }
 
         function startCountdown() {
             const countdownElement = document.getElementById("countdown");
@@ -156,7 +134,6 @@
             results = [];
             currentExercise = 0;
             roundStartTime = Date.now();
-            logToLoggly("Round Started", { totalExercises });
             showNextExercise();
         }
 
@@ -164,8 +141,8 @@
             const generated = new Set();
             const exercises = [];
             while (exercises.length < count) {
-                const a = Math.floor(Math.random() * 8) + 2;
-                const b = Math.floor(Math.random() * 8) + 2;
+                const a = Math.floor(Math.random() * 8) + 2; // Single-digit number (2-9)
+                const b = Math.floor(Math.random() * 8) + 2; // Single-digit number (2-9)
                 const key = `${a}x${b}`;
                 if (!generated.has(key)) {
                     generated.add(key);
@@ -196,14 +173,6 @@
             const exercise = exercises[currentExercise];
             const timeTaken = (Date.now() - startTime) / 1000;
 
-            logToLoggly("Answer Submitted", {
-                question: `${exercise.a} × ${exercise.b}`,
-                correctAnswer: exercise.correctAnswer,
-                userAnswer,
-                correct: userAnswer !== "N/A" && userAnswer === exercise.correctAnswer,
-                timeTaken,
-            });
-
             results.push({
                 ...exercise,
                 userAnswer,
@@ -217,8 +186,6 @@
 
         function endRound() {
             const totalTime = (Date.now() - roundStartTime) / 1000;
-            logToLoggly("Round Completed", { totalTime, results });
-
             saveRoundTime(totalTime);
             const improvementText = calculateImprovement();
 
@@ -307,24 +274,6 @@
             }
             return userId;
         }
-
-        function cancelRound() {
-            location.reload();
-        }
-
-        document.addEventListener("keydown", (event) => {
-            const key = event.key;
-            if (!isNaN(key)) {
-                appendNumber(Number(key));
-            } else if (key === "Backspace") {
-                const answerField = document.getElementById("answer");
-                answerField.value = answerField.value.slice(0, -1);
-            } else if (key.toLowerCase() === "e" || key === "Enter") {
-                submitAnswer();
-            } else if (key === "Escape") {
-                cancelRound();
-            }
-        });
 
         // Initialize the countdown
         startCountdown();

@@ -105,33 +105,11 @@
     </div>
 
     <script>
-        const LOGGLY_TOKEN = "f655e759-89fc-4dc3-a5dd-003c7e3700e2";
-        const LOGGLY_URL = `https://logs-01.loggly.com/inputs/${LOGGLY_TOKEN}/tag/http/`;
-
         const totalExercises = 10;
         let exercises = [];
         let currentExercise = 0;
         let startTime, roundStartTime;
         let results = [];
-
-        function logToLoggly(event, data = {}) {
-            const logData = {
-                event,
-                userId: getUserId(),
-                timestamp: new Date().toISOString(),
-                ...data,
-            };
-
-            fetch(LOGGLY_URL, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(logData),
-            }).catch((err) => {
-                console.error("Error logging to Loggly:", err);
-            });
-        }
 
         function startCountdown() {
             const countdownElement = document.getElementById("countdown");
@@ -156,7 +134,6 @@
             results = [];
             currentExercise = 0;
             roundStartTime = Date.now();
-            logToLoggly("Round Started", { totalExercises });
             showNextExercise();
         }
 
@@ -196,14 +173,6 @@
             const exercise = exercises[currentExercise];
             const timeTaken = (Date.now() - startTime) / 1000;
 
-            logToLoggly("Answer Submitted", {
-                question: `${exercise.a} × ${exercise.b}`,
-                correctAnswer: exercise.correctAnswer,
-                userAnswer,
-                correct: userAnswer !== "N/A" && userAnswer === exercise.correctAnswer,
-                timeTaken,
-            });
-
             results.push({
                 ...exercise,
                 userAnswer,
@@ -217,8 +186,6 @@
 
         function endRound() {
             const totalTime = (Date.now() - roundStartTime) / 1000;
-            logToLoggly("Round Completed", { totalTime, results });
-
             saveRoundTime(totalTime);
             const improvementText = calculateImprovement();
 
